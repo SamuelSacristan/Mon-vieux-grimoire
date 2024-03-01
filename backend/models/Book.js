@@ -14,4 +14,15 @@ const bookSchema = mongoose.Schema({
   averageRating: { type: Number, required: true }
 });
 
+bookSchema.pre('save', function (next) {
+  const ratings = this.ratings.map((rating) => rating.grade)
+  if (ratings.length === 0) {
+    this.averageRating = 0
+  } else {
+    const sumOfRatings = ratings.reduce((sum, value) => sum + value, 0)
+    this.averageRating = Math.round(sumOfRatings / ratings.length)
+  }
+  next()
+})
+
 module.exports = mongoose.model('Book', bookSchema);

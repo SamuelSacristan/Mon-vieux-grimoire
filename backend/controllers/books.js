@@ -18,25 +18,32 @@ exports.createBook = (req, res, next) => {
    .catch(error => { res.status(403).json( { error })})
 };
 
-exports.createRating = (req, res, next) => {
-    const rating = new ratings({
-      userId: req.body.userId,
-      grade: req.body.grade
-    });
-    rating.save().then(
-      () => {
-        res.status(201).json({
-          message: 'Rating created successfully!'
-        });
-      }
-    ).catch(
-      (error) => {
-        res.status(400).json({
-          error: error
-        });
-      }
-    );
-  };
+exports.createRating = async (req, res, next) => {
+   const existingRating = await Book.findOne({
+    _id: req.params.id,
+    "ratings.userId": req.body.userId
+  })
+  if (existingRating) {
+    return res.status(400).json({message: "L'utilisateur a déjà noté ce livre"})
+  }
+  if(!(req.body.rating  >= 0) && !(req.body.rating  <= 5) && (typeof req.body.rating === 'number')){
+    return res.status(500).json({message: "La note doit être comprise entre 0 et 5"})
+  }
+
+  try {
+    const book = await Book.findOne({ _id: req.params.id })
+    if (!book) {
+      return res.status(404).json({message: 'Livre non trouvé'})
+    }
+
+    book.ratings.push({ userId : req.body.userId, grade: req.body.rating })
+    await book.save()
+    res.status(200).json(book)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: error.message });
+  }
+}
 
 exports.getOneBook = (req, res, next) => {
   Book.findOne({
@@ -72,7 +79,7 @@ exports.modifyBook = async (req, res, next) => {
         const book = await Book.findOne({ _id: req.params.id });
 
         if (!book) {
-            return res.status(404).json({ message: 'Book not found' });
+            return res.status(404).json({ message: 'Livre non trouvé' });
         }
 
         if (book.userId !== req.auth.userId) {
@@ -80,7 +87,7 @@ exports.modifyBook = async (req, res, next) => {
         }
 
         await Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id });
-        res.status(200).json({ message: 'Book modified!' });
+        res.status(200).json({ message: 'Livre modifié!' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
