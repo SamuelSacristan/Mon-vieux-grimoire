@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 exports.createBook = (req, res, next) => {
+
+    if(!req.body.book) {
+      return res.status(400).json({message: 'parsing error'})
+    }
    const bookObject = JSON.parse(req.body.book);
    delete bookObject._id;
    delete bookObject._userId;
@@ -27,7 +31,7 @@ exports.createRating = async (req, res, next) => {
     return res.status(400).json({message: "L'utilisateur a déjà noté ce livre"})
   }
   if(!(req.body.rating  >= 0) && !(req.body.rating  <= 5) && (typeof req.body.rating === 'number')){
-    return res.status(500).json({message: "La note doit être comprise entre 0 et 5"})
+    return res.status(400).json({message: "La note doit être comprise entre 0 et 5"})
   }
 
   try {
